@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         POE2 高级过滤器模板保存器 V5
 // @namespace    https://pathofexile.com/
-// @version      5.0
+// @version      5.1
 // @description  保存和应用 POE2 Trade2 高级过滤器模板
 // @author       ChatGPT
 // @match        https://www.pathofexile.com/trade2/*
@@ -196,6 +196,29 @@
                 font-size: 11px;
                 margin-top: 10px;
             }
+            .pfs-btn-export {
+                background: #3498db;
+                color: #fff;
+                padding: 5px 12px;
+                font-size: 12px;
+            }
+            .pfs-btn-export:hover {
+                background: #2980b9;
+            }
+            .pfs-btn-import {
+                background: #9b59b6;
+                color: #fff;
+                padding: 5px 12px;
+                font-size: 12px;
+            }
+            .pfs-btn-import:hover {
+                background: #8e44ad;
+            }
+            .pfs-toolbar {
+                display: flex;
+                gap: 8px;
+                margin-bottom: 12px;
+            }
         `;
         const style = document.createElement('style');
         style.textContent = css;
@@ -220,6 +243,12 @@
                 <button class="pfs-btn pfs-btn-save" id="pfs-save">保存</button>
             </div>
 
+            <div class="pfs-toolbar">
+                <button class="pfs-btn pfs-btn-export" id="pfs-export">导出</button>
+                <button class="pfs-btn pfs-btn-import" id="pfs-import">导入</button>
+                <input type="file" id="pfs-file" accept=".json" style="display:none" />
+            </div>
+
             <div class="pfs-template-list" id="pfs-list"></div>
 
             <div class="pfs-hint">先搜索一次再保存模板</div>
@@ -231,6 +260,9 @@
         document.getElementById('pfs-name').onkeydown = (e) => {
             if (e.key === 'Enter') saveTemplate();
         };
+        document.getElementById('pfs-export').onclick = exportTemplates;
+        document.getElementById('pfs-import').onclick = () => document.getElementById('pfs-file').click();
+        document.getElementById('pfs-file').onchange = importTemplates;
 
         renderTemplates();
     }
@@ -390,6 +422,81 @@
         templates.splice(index, 1);
         setTemplates(templates);
         renderTemplates();
+    }
+
+    // ==========================
+    // 导入导出
+    // ==========================
+
+    function exportTemplates() {
+        const templates = getTemplates();
+        if (templates.length === 0) {
+            alert('没有可导出的模板');
+            return;
+        }
+
+        const data = JSON.stringify(templates, null, 2);
+        const blob = new Blob([data], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `poe2-templates-${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+
+        URL.revokeObjectURL(url);
+    }
+
+    function importTemplates(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const imported = JSON.parse(e.target.result);
+
+                if (!Array.isArray(imported)) {
+                    alert('无效的模板文件');
+                    return;
+                }
+
+                const templates = getTemplates();
+                let added = 0;
+                let skipped = 0;
+
+                imported.forEach(tpl => {
+                    if (!tpl.name || !tpl.stats) {
+                        skipped++;
+                        return;
+                    }
+
+                    const existIdx = templates.findIndex(t => t.name === tpl.name);
+                    if (existIdx >= 0) {
+                        skipped++;
+                    } else {
+                        templates.push({
+                            name: tpl.name,
+                            stats: tpl.stats,
+                            date: tpl.date || new Date().toLocaleString()
+                        });
+                        added++;
+                    }
+                });
+
+                setTemplates(templates);
+                renderTemplates();
+                alert(`导入完成：新增 ${added} 个，跳过 ${skipped} 个`);
+
+            } catch (err) {
+                console.error(err);
+                alert('导入失败：文件格式错误');
+            }
+        };
+        reader.readAsText(file);
+
+        // 重置input，允许重复导入同一文件
+        event.target.value = '';
     }
 
     // ==========================
