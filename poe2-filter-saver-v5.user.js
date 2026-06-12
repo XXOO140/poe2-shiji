@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         POE2 高级过滤器模板保存器 V5
 // @namespace    https://pathofexile.com/
-// @version      5.1
+// @version      5.2
 // @description  保存和应用 POE2 Trade2 高级过滤器模板
 // @author       ChatGPT
 // @match        https://www.pathofexile.com/trade2/*
@@ -219,6 +219,39 @@
                 gap: 8px;
                 margin-bottom: 12px;
             }
+            .pfs-title-row {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 10px;
+            }
+            .pfs-btn-minimize {
+                background: none;
+                border: none;
+                cursor: pointer;
+                padding: 4px;
+                opacity: 0.7;
+                transition: opacity 0.2s;
+            }
+            .pfs-btn-minimize:hover {
+                opacity: 1;
+            }
+            #pfs-orb-icon {
+                position: fixed;
+                right: 20px;
+                bottom: 20px;
+                width: 48px;
+                height: 48px;
+                cursor: pointer;
+                z-index: 999999;
+                filter: drop-shadow(0 4px 8px rgba(0,0,0,0.6));
+                transition: transform 0.2s;
+                display: none;
+                line-height: 0;
+            }
+            #pfs-orb-icon:hover {
+                transform: scale(1.15);
+            }
         `;
         const style = document.createElement('style');
         style.textContent = css;
@@ -236,7 +269,14 @@
         panel.id = 'pfs-v5-panel';
 
         panel.innerHTML = `
-            <div class="pfs-title">POE2 高级过滤器模板</div>
+            <div class="pfs-title-row">
+                <div class="pfs-title">POE2 高级过滤器模板</div>
+                <button class="pfs-btn-minimize" id="pfs-minimize" title="缩小">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e94560" stroke-width="2">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </button>
+            </div>
 
             <div class="pfs-input-row">
                 <input class="pfs-input" id="pfs-name" placeholder="输入模板名称..." maxlength="50" />
@@ -256,7 +296,27 @@
 
         document.body.appendChild(panel);
 
-        document.getElementById('pfs-save').onclick = saveTemplate;
+        // 神圣石图标 (SVG)
+        const orbIcon = document.createElement('div');
+        orbIcon.id = 'pfs-orb-icon';
+        orbIcon.title = '展开过滤器面板';
+        orbIcon.onclick = () => togglePanel(true);
+        orbIcon.innerHTML = `
+            <svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <radialGradient id="orbGrad" cx="40%" cy="35%">
+                        <stop offset="0%" stop-color="#fff7ae"/>
+                        <stop offset="50%" stop-color="#f0c040"/>
+                        <stop offset="100%" stop-color="#a06800"/>
+                    </radialGradient>
+                </defs>
+                <circle cx="24" cy="24" r="20" fill="url(#orbGrad)" stroke="#805800" stroke-width="2"/>
+                <text x="24" y="30" text-anchor="middle" font-size="20" font-weight="bold" fill="#603000" font-family="serif">D</text>
+            </svg>
+        `;
+        document.body.appendChild(orbIcon);
+
+        document.getElementById('pfs-minimize').onclick = () => togglePanel(false);
         document.getElementById('pfs-name').onkeydown = (e) => {
             if (e.key === 'Enter') saveTemplate();
         };
@@ -497,6 +557,24 @@
 
         // 重置input，允许重复导入同一文件
         event.target.value = '';
+    }
+
+    // ==========================
+    // 缩小/展开
+    // ==========================
+
+    function togglePanel(show) {
+        const panel = document.getElementById('pfs-v5-panel');
+        const orb = document.getElementById('pfs-orb-icon');
+        if (!panel || !orb) return;
+
+        if (show) {
+            panel.style.display = 'block';
+            orb.style.display = 'none';
+        } else {
+            panel.style.display = 'none';
+            orb.style.display = 'block';
+        }
     }
 
     // ==========================
